@@ -11,7 +11,6 @@ NN::NN(std::function<double(double)> activation,
   this->outputLayer.size = outputs;
   for (int o = 0; o < outputs; ++o) {
     this->outputLayer.nodes.push_back(o + inputs);
-    this->incoming[o + inputs] = std::vector<int>();
     for (int i = 0; i < inputs; ++i) {
       struct Gene gene;
       gene.innov = i + o * inputs;
@@ -19,7 +18,7 @@ NN::NN(std::function<double(double)> activation,
       gene.out = o + inputs;
       this->genotype.push_back(gene);
       this->inputLayer.nodes.push_back(i);
-      this->incoming[o].push_back(i);
+      this->incoming[o + inputs].push_back(i);
       this->weights[{i, o + inputs}] = dis(gen);
     }
   }
@@ -33,7 +32,7 @@ double NN::propagateRecurse(std::map<int, double>& memo, const int& node) {
     if (memo.count(nodeN) == 0) {
       memo[nodeN] = propagateRecurse(memo, nodeN);
     }
-    sum += memo[nodeN]; 
+    sum += memo[nodeN] * weights[{nodeN, node}]; 
   }
   return this->activation(sum);
 }

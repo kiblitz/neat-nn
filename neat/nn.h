@@ -19,7 +19,7 @@ struct Layer {
 };
 
 class NN {
-  private:
+  public:
     std::vector<Gene> genotype; 
     std::map<std::pair<int, int>, double> weights;
     Layer inputLayer;
@@ -32,7 +32,7 @@ class NN {
 
     NN addNode();
     NN addConn();
-  public:
+  //public:
     NN(std::function<double(double)> activation, 
        int inputs, 
        int outputs, 
