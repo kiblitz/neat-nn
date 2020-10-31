@@ -2,10 +2,12 @@
 #include "nn.h"
 
 NN::NN(std::function<double(double)> activation, 
-       int inputs, 
-       int outputs, 
+       size_t inputs, 
+       size_t outputs, 
        std::uniform_real_distribution<double>& dis, 
        std::mt19937& gen) {
+  this->dis = dis;
+  this->gen = gen;
   this->activation = activation;
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
@@ -18,23 +20,10 @@ NN::NN(std::function<double(double)> activation,
       gene.out = o + inputs;
       this->genotype.push_back(gene);
       this->inputLayer.nodes.push_back(i);
-      this->incoming[o + inputs].push_back(i);
-      this->weights[{i, o + inputs}] = dis(gen);
+      this->incoming[o + inputs].insert(i);
+      this->weights[{i, o + inputs}] = this->dis(this->gen);
     }
   }
-}
-
-double NN::propagateRecurse(std::map<int, double>& memo, const int& node) {
-  std::vector<int> invNeighbors = this->incoming[node];
-  double sum = 0;
-  for (int i = 0; i < invNeighbors.size(); ++i) {
-    int nodeN = invNeighbors[i];
-    if (memo.count(nodeN) == 0) {
-      memo[nodeN] = propagateRecurse(memo, nodeN);
-    }
-    sum += memo[nodeN] * weights[{nodeN, node}]; 
-  }
-  return this->activation(sum);
 }
 
 std::vector<double> NN::propagate(const std::vector<double>& input) {
@@ -42,15 +31,80 @@ std::vector<double> NN::propagate(const std::vector<double>& input) {
     throw std::runtime_error("NN input layer size does not match input vector size");
   }
 
-  std::map<int, double> memo;
+  std::map<size_t, double> memo;
   for (int i = 0; i < this->inputLayer.size; ++i) {
-    int node = this->inputLayer.nodes[i];
-    memo[node] = input[i];
+    node nodeOn = this->inputLayer.nodes[i];
+    memo[nodeOn] = input[i];
   }
-  
+ 
   std::vector<double> output;
   for (int i = 0; i < this->outputLayer.size; ++i) {
     output.push_back(propagateRecurse(memo, this->outputLayer.nodes[i]));
   }
   return output;
 }
+
+double NN::propagateRecurse(std::map<node, double>& memo, const node& nodeOn) {
+  std::unordered_set<node> invNeighbors = this->incoming[nodeOn];
+  double sum = 0;
+  for (node nodeN : invNeighbors) {
+    if (memo.count(nodeN) == 0) {
+      memo[nodeN] = propagateRecurse(memo, nodeN);
+    }
+    sum += memo[nodeN] * weights[{nodeN, nodeOn}]; 
+  }
+  return this->activation(sum);
+}
+
+void NN::insertGene(struct Gene& gene) {
+  for (auto i = this->genotype.rbegin(); i != this->genotype.rend(); ++i) {
+    size_t innov = i->innov;
+    if (innov == gene.innov) {
+      i->enabled = true;
+      return;
+    }
+    if (innov < gene.innov) {
+      this->incoming[gene.out].insert(gene.in);
+      this->weights[{gene.in, gene.out}] = this->dis(this->gen);
+      this->genotype.insert(i.base(), gene);
+      return;
+    }
+  }
+  this->incoming[gene.out].insert(gene.in);
+  this->weights[{gene.in, gene.out}] = this->dis(this->gen);
+  this->genotype.insert(genotype.begin(), gene);
+}
+
+void NN::disableGene(size_t innov) {
+  for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
+    if (i->innov == innov) {
+      this->incoming[i->out].erase(i->in);
+      i->enabled = false;
+      return;
+    }
+  }
+}
+
+void NN::addConn(size_t innov, node from, node to) {
+  struct Gene gene;
+  gene.innov = innov;
+  gene.in = from;
+  gene.out = to;
+  this->insertGene(gene);
+}
+
+void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov, 
+                 node from, node between, node to) {
+  struct Gene gene1;
+  gene1.innov = innov1;
+  gene1.in = from;
+  gene1.out = between;
+  struct Gene gene2;
+  gene2.innov = innov2;
+  gene2.in = between;
+  gene2.out = to;
+  this->insertGene(gene1);
+  this->insertGene(gene2);
+  this->disableGene(oldInnov);
+}
+
