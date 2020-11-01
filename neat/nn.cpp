@@ -60,6 +60,7 @@ void NN::insertGene(struct Gene& gene) {
   for (auto i = this->genotype.rbegin(); i != this->genotype.rend(); ++i) {
     size_t innov = i->innov;
     if (innov == gene.innov) {
+      this->incoming[i->out].insert(i->in);
       i->enabled = true;
       return;
     }
@@ -80,6 +81,21 @@ void NN::disableGene(size_t innov) {
     if (i->innov == innov) {
       this->incoming[i->out].erase(i->in);
       i->enabled = false;
+      return;
+    }
+  }
+}
+
+void NN::toggleGene(size_t innov) {
+  for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
+    if (i->innov == innov) {
+      if (i->enabled) {
+        this->incoming[i->out].erase(i->in);
+        i->enabled = false;
+      } else {
+        this->incoming[i->out].insert(i->in);
+        i->enabled = true;
+      }
       return;
     }
   }
