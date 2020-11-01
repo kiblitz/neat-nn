@@ -64,8 +64,10 @@ class NN {
      * just enable it 
      *
      * @param gene Gene to insert
+     * @param weight Weight of connection indicated by gene
      */
     void insertGene(struct Gene& gene);
+    void insertGene(struct Gene& gene, double weight);
     
     /** 
      * Disables a connection
@@ -91,15 +93,31 @@ class NN {
 
     /** Adds a new node between given nodes
      *
-     * @param innov1 Innovation number of gene corresponding to first new connection
-     * @param innov2 Innovation number of gene corresponding to second new connection
-     * @param oldInnov Innovation number of gene corresponding to old connection
+     * @param innov1 Innovation number of gene for first new connection
+     * @param innov2 Innovation number of gene for second new connection
+     * @param oldInnov Innovation number of gene for old connection
      * @param from Connection start node
      * @param between New node
      * @param to Connection end node
      */   
     void addNode(size_t innov1, size_t innov2, size_t oldInnov, 
                  node from, node between, node to);
+
+    /**
+     * Get the gene corresponding to the given innovation number
+     *
+     * @param innov Innovation number of gene
+     * @return The gene corresponding to the given innovation number
+     */
+    struct Gene& getGene(size_t innov);
+
+    /**
+     * Get the weight of a connection from its gene innovation number
+     *
+     * @param innov Innovation number of gene for connection
+     * @return The weight of the connection associated with the given gene
+     */
+    double getWeight(size_t innov);
 
   public:
     /**
@@ -121,6 +139,7 @@ class NN {
      * Propagate neural network
      *
      * @param input Vector of inputs to propagate through neural network
+     * @return Vector of outputs as a result of propagation
      */
     std::vector<double> propagate(const std::vector<double>& input);
 

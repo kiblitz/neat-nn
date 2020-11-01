@@ -57,6 +57,10 @@ double NN::propagateRecurse(std::map<node, double>& memo, const node& nodeOn) {
 }
 
 void NN::insertGene(struct Gene& gene) {
+  this->insertGene(gene, this->dis(this->gen));
+}
+
+void NN::insertGene(struct Gene& gene, double weight) {
   for (auto i = this->genotype.rbegin(); i != this->genotype.rend(); ++i) {
     size_t innov = i->innov;
     if (innov == gene.innov) {
@@ -66,7 +70,7 @@ void NN::insertGene(struct Gene& gene) {
     }
     if (innov < gene.innov) {
       this->incoming[gene.out].insert(gene.in);
-      this->weights[{gene.in, gene.out}] = this->dis(this->gen);
+      this->weights[{gene.in, gene.out}] = weight;
       this->genotype.insert(i.base(), gene);
       return;
     }
@@ -77,27 +81,19 @@ void NN::insertGene(struct Gene& gene) {
 }
 
 void NN::disableGene(size_t innov) {
-  for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
-    if (i->innov == innov) {
-      this->incoming[i->out].erase(i->in);
-      i->enabled = false;
-      return;
-    }
-  }
+  struct Gene gene = this->getGene(innov);
+  this->incoming[gene.out].erase(gene.in);
+  gene.enabled = false;
 }
 
 void NN::toggleGene(size_t innov) {
-  for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
-    if (i->innov == innov) {
-      if (i->enabled) {
-        this->incoming[i->out].erase(i->in);
-        i->enabled = false;
-      } else {
-        this->incoming[i->out].insert(i->in);
-        i->enabled = true;
-      }
-      return;
-    }
+  struct Gene gene = this->getGene(innov);
+  if (gene.enabled) {
+    this->incoming[gene.out].erase(gene.in);
+    gene.enabled = false;
+  } else {
+    this->incoming[gene.out].insert(gene.in);
+    gene.enabled = true;
   }
 }
 
@@ -119,8 +115,21 @@ void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov,
   gene2.innov = innov2;
   gene2.in = between;
   gene2.out = to;
-  this->insertGene(gene1);
-  this->insertGene(gene2);
+  this->insertGene(gene1, 1);
+  this->insertGene(gene2, this->getWeight(oldInnov));
   this->disableGene(oldInnov);
 }
 
+struct Gene& NN::getGene(size_t innov) {
+  for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
+    if (i->innov == innov) {
+      return *i;
+    }
+  } 
+  throw std::runtime_error("Gene with innovation number not found");
+}
+
+double NN::getWeight(size_t innov) {
+  struct Gene gene = this->getGene(innov);
+  return this->weights[{gene.in, gene.out}];
+}
