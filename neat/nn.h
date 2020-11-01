@@ -9,6 +9,7 @@
 
 typedef size_t node;
 
+// Neural network gene
 struct Gene {
   size_t innov;
   node in;
@@ -16,6 +17,7 @@ struct Gene {
   bool enabled = true;
 };
 
+// Neural network layer
 struct Layer {
   std::vector<node> nodes;
   size_t size;
