@@ -110,19 +110,26 @@ void NN::addConn(size_t innov, node from, node to) {
   this->insertGene(gene);
 }
 
-void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov, 
-                 node from, node between, node to) {
+void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov, node newNode) {
+  struct Gene oldGene = this->getGene(oldInnov);
+  node from = oldGene.in;
+  node to = oldGene.out;
   struct Gene gene1;
   gene1.innov = innov1;
   gene1.in = from;
-  gene1.out = between;
+  gene1.out = newNode;
   struct Gene gene2;
   gene2.innov = innov2;
-  gene2.in = between;
+  gene2.in = newNode;
   gene2.out = to;
   this->insertGene(gene1, this->activationLevel);
   this->insertGene(gene2, this->getWeight(oldInnov));
   this->disableGene(oldInnov);
+}
+
+void NN::randomizeWeight(size_t innov) {
+  struct Gene gene = this->getGene(innov);
+  this->weights[{gene.in, gene.out}] = this->dis(this->gen);
 }
 
 struct Gene& NN::getGene(size_t innov) {

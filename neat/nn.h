@@ -86,7 +86,8 @@ class NN {
      */
     void toggleGene(size_t innov);
 
-    /** Adds a new connection between given nodes
+    /** 
+     * Adds a new connection between given nodes
      *
      * @param innov Innovation number of gene corresponding to new connection
      * @param from Connection start node
@@ -94,17 +95,22 @@ class NN {
      */
     void addConn(size_t innov, node from, node to);
 
-    /** Adds a new node between given nodes
+    /** 
+     * Adds a new node between given nodes
      *
      * @param innov1 Innovation number of gene for first new connection
      * @param innov2 Innovation number of gene for second new connection
      * @param oldInnov Innovation number of gene for old connection
-     * @param from Connection start node
-     * @param between New node
-     * @param to Connection end node
+     * @param newNode New node to add
      */   
-    void addNode(size_t innov1, size_t innov2, size_t oldInnov, 
-                 node from, node between, node to);
+    void addNode(size_t innov1, size_t innov2, size_t oldInnov, node newNode);
+
+    /**
+     * Randomizes a weight given an innovation number
+     *
+     * @param innov Innovation number of gene for connection to randomize weight
+     */
+    void randomizeWeight(size_t innov);
 
     /**
      * Get the gene corresponding to the given innovation number
