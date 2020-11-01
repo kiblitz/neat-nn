@@ -5,9 +5,11 @@ NN::NN(std::function<double(double)> activation,
        size_t inputs, 
        size_t outputs, 
        std::uniform_real_distribution<double>& dis, 
-       std::mt19937& gen) {
+       std::mt19937& gen,
+       double activationLevel) {
   this->dis = dis;
   this->gen = gen;
+  this->activationLevel = activationLevel;
   this->activation = activation;
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
@@ -54,7 +56,7 @@ double NN::propagateRecurse(std::map<node, double>& memo, const node& nodeOn) {
     sum += memo[nodeN] * weights[{nodeN, nodeOn}]; 
   }
   if (invNeighbors.size() == 0) {
-    sum = 1;
+    sum = this->activationLevel;
   }
   return this->activation(sum);
 }
@@ -118,7 +120,7 @@ void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov,
   gene2.innov = innov2;
   gene2.in = between;
   gene2.out = to;
-  this->insertGene(gene1, 1);
+  this->insertGene(gene1, this->activationLevel);
   this->insertGene(gene2, this->getWeight(oldInnov));
   this->disableGene(oldInnov);
 }

@@ -49,6 +49,9 @@ class NN {
     // Random number generator
     std::mt19937 gen;
 
+    // Value for biases and node insertions
+    double activationLevel = 1;
+
     /** 
      * Recursive propagation helper
      *
@@ -128,12 +131,14 @@ class NN {
      * @param outputs Number of output nodes
      * @param dis Distribution for possible weights
      * @param gen Random number generator for weights
+     * @param activationLevel Set the activation level value (default = 1)
      */
     NN(std::function<double(double)> activation, 
        size_t inputs, 
        size_t outputs, 
        std::uniform_real_distribution<double>& dis, 
-       std::mt19937& gen);
+       std::mt19937& gen,
+       double activationValue = 1);
 
     /**
      * Propagate neural network
