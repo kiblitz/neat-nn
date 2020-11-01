@@ -53,6 +53,9 @@ double NN::propagateRecurse(std::map<node, double>& memo, const node& nodeOn) {
     }
     sum += memo[nodeN] * weights[{nodeN, nodeOn}]; 
   }
+  if (invNeighbors.size() == 0) {
+    sum = 1;
+  }
   return this->activation(sum);
 }
 
