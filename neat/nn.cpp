@@ -6,6 +6,7 @@ NN::NN(std::function<double(double)> activation,
        size_t outputs, 
        std::uniform_real_distribution<double>& dis, 
        std::mt19937& gen,
+       const struct MutationConfig& config,
        double activationLevel) {
   this->dis = dis;
   this->gen = gen;
@@ -26,6 +27,19 @@ NN::NN(std::function<double(double)> activation,
       this->weights[{i, o + inputs}] = this->dis(this->gen);
     }
   }
+  this->configMutations(config);
+}
+
+void NN::configMutations(const struct MutationConfig& config) {
+  double sum = 0;
+  for (double next : {config.toggleGene, 
+                      config.addConn, 
+                      config.addNode, 
+                      config.randomizeWeight}) {
+    sum += next;
+    this->mutationCdf.push_back(sum);
+  }
+  this->mutationDis = std::uniform_real_distribution<double>(0, sum);
 }
 
 std::vector<double> NN::propagate(const std::vector<double>& input) {

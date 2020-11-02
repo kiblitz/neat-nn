@@ -23,6 +23,26 @@ struct Layer {
   size_t size;
 };
 
+// Probabilities configuration
+struct MutationConfig {
+  MutationConfig(): toggleGene(0.25),
+                    addConn(0.25),
+                    addNode(0.25),
+                    randomizeWeight(0.25) {}
+  double toggleGene;
+  double addConn;
+  double addNode;
+  double randomizeWeight;
+};
+
+// Mutation constants
+enum MUTATION {
+  TOGGLEGENE,
+  ADDCONN,
+  ADDNODE,
+  RANDOMIZEWEIGHT
+};
+
 class NN {
   public:
     // Vector of genes corresponding to neural network genotype
@@ -49,6 +69,12 @@ class NN {
     // Random number generator
     std::mt19937 gen;
 
+    // Random mutation cdf
+    std::vector<double> mutationCdf;
+    
+    // Mutation distribution
+    std::uniform_real_distribution<double> mutationDis;
+
     // Value for biases and node insertions
     double activationLevel = 1;
 
@@ -60,6 +86,13 @@ class NN {
      */
     double propagateRecurse(std::map<node, double>& memo, const node& nodeOn);
 
+    /**
+     * Configure mutation probabilities from config
+     *
+     * @param config Mutation configuration to use
+     */
+    void configMutations(const struct MutationConfig& config);
+    
     /** 
      * Inserts gene to genotype
      *
@@ -137,6 +170,7 @@ class NN {
      * @param outputs Number of output nodes
      * @param dis Distribution for possible weights
      * @param gen Random number generator for weights
+     * @param config Mutation probabilities configuration
      * @param activationLevel Set the activation level value (default = 1)
      */
     NN(std::function<double(double)> activation, 
@@ -144,6 +178,7 @@ class NN {
        size_t outputs, 
        std::uniform_real_distribution<double>& dis, 
        std::mt19937& gen,
+       const struct MutationConfig& config = MutationConfig(),
        double activationValue = 1);
 
     /**
