@@ -6,7 +6,7 @@ NN::NN(const std::function<double(double)> activation,
        const size_t outputs, 
        const std::uniform_real_distribution<double>& dis, 
        const std::mt19937& gen,
-       std::set<std::pair<node, node>>& weightPool,
+       std::set<std::pair<node, node>>& connPool,
        size_t& innovOn,
        const struct MutationConfig& config,
        const double activationLevel) :
@@ -14,7 +14,7 @@ NN::NN(const std::function<double(double)> activation,
          dis(dis),
          gen(gen),
          activationLevel(activationLevel),
-         weightPool(weightPool),
+         connPool(connPool),
          innovOn(innovOn) {
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
@@ -84,7 +84,7 @@ void NN::insertGene(const struct Gene& gene, double weight, bool enabled) {
   }
   if (gene.innov == this->innovOn) {
     this->innovOn++;
-    this->weightPool.insert({gene.in, gene.out});
+    this->connPool.insert({gene.in, gene.out});
   }
   if (enabled) {
     this->incoming[gene.out].insert(gene.in);
