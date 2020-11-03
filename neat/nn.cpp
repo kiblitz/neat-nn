@@ -6,6 +6,7 @@ NN::NN(const std::function<double(double)> activation,
        const size_t outputs, 
        const std::uniform_real_distribution<double>& dis, 
        const std::mt19937& gen,
+       std::set<struct Gene>& genePool,
        size_t& innovOn,
        const struct MutationConfig& config,
        const double activationLevel) :
@@ -13,6 +14,7 @@ NN::NN(const std::function<double(double)> activation,
          dis(dis),
          gen(gen),
          activationLevel(activationLevel),
+         genePool(genePool),
          innovOn(innovOn) {
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
@@ -20,10 +22,8 @@ NN::NN(const std::function<double(double)> activation,
     this->outputLayer.nodes.push_back(o + inputs);
     for (int i = 0; i < inputs; ++i) {
       struct Gene gene(i + o * inputs, i, o + inputs);
-      this->genotype.insert(gene);
       this->inputLayer.nodes.push_back(i);
-      this->incoming[o + inputs].insert(i);
-      this->weights[{i, o + inputs}] = this->dis(this->gen);
+      this->insertGene(gene);
     }
   }
   this->configMutations(config);
@@ -79,26 +79,33 @@ void NN::insertGene(const struct Gene& gene) {
 }
 
 void NN::insertGene(const struct Gene& gene, double weight) {
+  if (gene.innov > this->innovOn) {
+    throw std::runtime_error("Inserting gene with innovation number out of bounds");
+  }
+  if (gene.innov == this->innovOn) {
+    this->innovOn++;
+    this->genePool.insert(gene);
+    this->enabledGenes[gene.innov] = true;
+  }
   this->genotype.insert(gene);
   this->incoming[gene.out].insert(gene.in);
-  this->weights[{gene.in, gene.out}] = this->dis(this->gen);
+  this->weights[{gene.in, gene.out}] = weight;
 }
 
 void NN::disableGene(const size_t innov) {
   struct Gene gene = this->getGene(innov);
   this->incoming[gene.out].erase(gene.in);
-  gene.enabled = false;
+  this->enabledGenes[innov] = false;
 }
 
 void NN::toggleGene(const size_t innov) {
   struct Gene gene = this->getGene(innov);
-  if (gene.enabled) {
+  if (enabledGenes[innov]) {
     this->incoming[gene.out].erase(gene.in);
-    gene.enabled = false;
   } else {
     this->incoming[gene.out].insert(gene.in);
-    gene.enabled = true;
   }
+  this->enabledGenes[innov] = !this->enabledGenes[innov];
 }
 
 void NN::addConn(const size_t innov, const node from, const node to) {

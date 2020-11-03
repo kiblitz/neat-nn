@@ -15,7 +15,6 @@ struct Gene {
   size_t innov;
   node in;
   node out;
-  bool enabled = true;
 
   Gene(const size_t& innov) : innov(innov) {}
   Gene(const size_t& innov, const node& in, const node& out) : 
@@ -23,7 +22,7 @@ struct Gene {
          in(in), 
          out(out) {}
 
-  bool operator<(const Gene& gene) const {
+  bool operator<(const struct Gene& gene) const {
     return innov < gene.innov;
   }
 };
@@ -59,6 +58,9 @@ class NN {
     // Set of genes corresponding to neural network genotype
     std::set<struct Gene> genotype; 
 
+    // Map with innovation numbers to gene enabled
+    std::map<size_t, bool> enabledGenes;
+
     // Map with connection keys to weight values
     std::map<std::pair<node, node>, double> weights;
 
@@ -88,6 +90,9 @@ class NN {
 
     // Value for biases and node insertions
     double activationLevel = 1;
+
+    // Gene pool with all genes
+    std::set<struct Gene>& genePool;
 
     // Next innovation number
     size_t& innovOn;
@@ -195,6 +200,8 @@ class NN {
      * @param outputs Number of output nodes
      * @param dis Distribution for possible weights
      * @param gen Random number generator for weights
+     * @param genePool Set of all genes
+     * @param innovOn Next innovation number to append to gene pool
      * @param config Mutation probabilities configuration
      * @param activationLevel Set the activation level value (default = 1)
      */
@@ -203,6 +210,7 @@ class NN {
        const size_t outputs, 
        const std::uniform_real_distribution<double>& dis, 
        const std::mt19937& gen,
+       std::set<struct Gene>& genePool,
        size_t& innovOn,
        const struct MutationConfig& config = MutationConfig(),
        const double activationLevel = 1);
