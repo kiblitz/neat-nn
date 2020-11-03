@@ -120,9 +120,10 @@ class NN {
      *
      * @param gene Gene to insert
      * @param weight Weight of connection indicated by gene
+     * @param enabled Gene inserted enabled characteristic
      */
-    void insertGene(const struct Gene& gene);
-    void insertGene(const struct Gene& gene, double weight);
+    void insertGene(const struct Gene& gene, bool enabled = true);
+    void insertGene(const struct Gene& gene, double weight, bool enabled = true);
  
     /** 
      * Disables a connection

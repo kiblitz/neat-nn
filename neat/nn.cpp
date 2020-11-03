@@ -74,21 +74,23 @@ double NN::propagateRecurse(std::map<const node, double>& memo, const node& node
   return this->activation(sum);
 }
 
-void NN::insertGene(const struct Gene& gene) {
+void NN::insertGene(const struct Gene& gene, bool enabled) {
   this->insertGene(gene, this->dis(this->gen));
 }
 
-void NN::insertGene(const struct Gene& gene, double weight) {
+void NN::insertGene(const struct Gene& gene, double weight, bool enabled) {
   if (gene.innov > this->innovOn) {
     throw std::runtime_error("Inserting gene with innovation number out of bounds");
   }
   if (gene.innov == this->innovOn) {
     this->innovOn++;
     this->weightPool.insert({gene.in, gene.out});
-    this->enabledGenes[gene.innov] = true;
   }
+  if (enabled) {
+    this->incoming[gene.out].insert(gene.in);
+  }
+  this->enabledGenes[gene.innov] = enabled;
   this->genotype.insert(gene);
-  this->incoming[gene.out].insert(gene.in);
   this->weights[{gene.in, gene.out}] = weight;
 }
 
