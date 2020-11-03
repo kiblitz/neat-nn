@@ -18,9 +18,9 @@ NN::NN(const std::function<double(double)> activation,
          innovOn(innovOn) {
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
-  for (int o = 0; o < outputs; ++o) {
+  for (size_t o = 0; o < outputs; ++o) {
     this->outputLayer.nodes.push_back(o + inputs);
-    for (int i = 0; i < inputs; ++i) {
+    for (size_t i = 0; i < inputs; ++i) {
       struct Gene gene(i + o * inputs, i, o + inputs);
       this->inputLayer.nodes.push_back(i);
       this->insertGene(gene);
@@ -47,13 +47,13 @@ std::vector<double> NN::propagate(const std::vector<double>& input) {
   }
 
   std::map<const size_t, double> memo;
-  for (int i = 0; i < this->inputLayer.size; ++i) {
+  for (size_t i = 0; i < this->inputLayer.size; ++i) {
     node nodeOn = this->inputLayer.nodes[i];
     memo[nodeOn] = input[i];
   }
  
   std::vector<double> output;
-  for (int i = 0; i < this->outputLayer.size; ++i) {
+  for (size_t i = 0; i < this->outputLayer.size; ++i) {
     output.push_back(propagateRecurse(memo, this->outputLayer.nodes[i]));
   }
   return output;
