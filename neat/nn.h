@@ -2,6 +2,7 @@
 #include <functional>
 #include <map>
 #include <random>
+#include <set>
 #include <stdexcept>
 #include <unordered_set>
 #include <utility>
@@ -15,6 +16,13 @@ struct Gene {
   node in;
   node out;
   bool enabled = true;
+};
+
+// Neural network gene comparison
+struct GeneCmp {
+  bool operator()(const Gene& gene1, const Gene& gene2) const {
+    return gene1.innov < gene2.innov;
+  }
 };
 
 // Neural network layer
@@ -46,7 +54,7 @@ enum MUTATION {
 class NN {
   public:
     // Vector of genes corresponding to neural network genotype
-    std::vector<Gene> genotype; 
+    std::set<struct Gene, struct GeneCmp> genotype; 
 
     // Map with connection keys to weight values
     std::map<std::pair<node, node>, double> weights;
@@ -59,7 +67,7 @@ class NN {
 
     // Map with node keys to incoming nodes
     std::map<node, std::unordered_set<node>> incoming;
-  
+ 
     // Activation function
     std::function<double(double)> activation; 
 
@@ -71,12 +79,15 @@ class NN {
 
     // Random mutation cdf
     std::vector<double> mutationCdf;
-    
+ 
     // Mutation distribution
     std::uniform_real_distribution<double> mutationDis;
 
     // Value for biases and node insertions
     double activationLevel = 1;
+
+    // Next innovation number
+    size_t& innovOn;
 
     /** 
      * Recursive propagation helper
@@ -84,7 +95,7 @@ class NN {
      * @param memo Memoization map with propagated values of each node
      * @param nodeOn Node currently on in recursion
      */
-    double propagateRecurse(std::map<node, double>& memo, const node& nodeOn);
+    double propagateRecurse(std::map<const node, double>& memo, const node& nodeOn);
 
     /**
      * Configure mutation probabilities from config
@@ -92,7 +103,7 @@ class NN {
      * @param config Mutation configuration to use
      */
     void configMutations(const struct MutationConfig& config);
-    
+ 
     /** 
      * Inserts gene to genotype
      *
@@ -102,22 +113,22 @@ class NN {
      * @param gene Gene to insert
      * @param weight Weight of connection indicated by gene
      */
-    void insertGene(struct Gene& gene);
-    void insertGene(struct Gene& gene, double weight);
-    
+    void insertGene(const struct Gene& gene);
+    void insertGene(const struct Gene& gene, double weight);
+ 
     /** 
      * Disables a connection
      *
      * @param innov Innovation of gene with connection to disable
      */
-    void disableGene(size_t innov);
+    void disableGene(const size_t innov);
 
     /**
      * Toggles a connection
      *
      * @param innov Innovation of gene with connection to toggle
      */
-    void toggleGene(size_t innov);
+    void toggleGene(const size_t innov);
 
     /** 
      * Adds a new connection between given nodes
@@ -126,7 +137,7 @@ class NN {
      * @param from Connection start node
      * @param to Connection end node
      */
-    void addConn(size_t innov, node from, node to);
+    void addConn(const size_t innov, const node from, const node to);
 
     /** 
      * Adds a new node between given nodes
@@ -136,14 +147,17 @@ class NN {
      * @param oldInnov Innovation number of gene for old connection
      * @param newNode New node to add
      */   
-    void addNode(size_t innov1, size_t innov2, size_t oldInnov, node newNode);
+    void addNode(const size_t innov1, 
+                 const size_t innov2, 
+                 const size_t oldInnov, 
+                 const node newNode);
 
     /**
      * Randomizes a weight given an innovation number
      *
      * @param innov Innovation number of gene for connection to randomize weight
      */
-    void randomizeWeight(size_t innov);
+    void randomizeWeight(const size_t innov);
 
     /**
      * Get the gene corresponding to the given innovation number
@@ -151,7 +165,7 @@ class NN {
      * @param innov Innovation number of gene
      * @return The gene corresponding to the given innovation number
      */
-    struct Gene& getGene(size_t innov);
+    const struct Gene& getGene(const size_t innov);
 
     /**
      * Get the weight of a connection from its gene innovation number
@@ -159,7 +173,7 @@ class NN {
      * @param innov Innovation number of gene for connection
      * @return The weight of the connection associated with the given gene
      */
-    double getWeight(size_t innov);
+    double getWeight(const size_t innov);
 
   public:
     /**
@@ -173,13 +187,14 @@ class NN {
      * @param config Mutation probabilities configuration
      * @param activationLevel Set the activation level value (default = 1)
      */
-    NN(std::function<double(double)> activation, 
-       size_t inputs, 
-       size_t outputs, 
-       std::uniform_real_distribution<double>& dis, 
-       std::mt19937& gen,
+    NN(const std::function<double(double)> activation, 
+       const size_t inputs, 
+       const size_t outputs, 
+       const std::uniform_real_distribution<double>& dis, 
+       const std::mt19937& gen,
+       size_t& innovOn,
        const struct MutationConfig& config = MutationConfig(),
-       double activationValue = 1);
+       const double activationLevel = 1);
 
     /**
      * Propagate neural network

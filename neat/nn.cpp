@@ -1,17 +1,19 @@
 
 #include "nn.h"
 
-NN::NN(std::function<double(double)> activation, 
-       size_t inputs, 
-       size_t outputs, 
-       std::uniform_real_distribution<double>& dis, 
-       std::mt19937& gen,
+NN::NN(const std::function<double(double)> activation, 
+       const size_t inputs, 
+       const size_t outputs, 
+       const std::uniform_real_distribution<double>& dis, 
+       const std::mt19937& gen,
+       size_t& innovOn,
        const struct MutationConfig& config,
-       double activationLevel) {
-  this->dis = dis;
-  this->gen = gen;
-  this->activationLevel = activationLevel;
-  this->activation = activation;
+       const double activationLevel) :
+         activation(activation),
+         dis(dis),
+         gen(gen),
+         activationLevel(activationLevel),
+         innovOn(innovOn) {
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
   for (int o = 0; o < outputs; ++o) {
@@ -21,7 +23,7 @@ NN::NN(std::function<double(double)> activation,
       gene.innov = i + o * inputs;
       gene.in = i;
       gene.out = o + inputs;
-      this->genotype.push_back(gene);
+      this->genotype.insert(gene);
       this->inputLayer.nodes.push_back(i);
       this->incoming[o + inputs].insert(i);
       this->weights[{i, o + inputs}] = this->dis(this->gen);
@@ -47,7 +49,7 @@ std::vector<double> NN::propagate(const std::vector<double>& input) {
     throw std::runtime_error("NN input layer size does not match input vector size");
   }
 
-  std::map<size_t, double> memo;
+  std::map<const size_t, double> memo;
   for (int i = 0; i < this->inputLayer.size; ++i) {
     node nodeOn = this->inputLayer.nodes[i];
     memo[nodeOn] = input[i];
@@ -60,10 +62,10 @@ std::vector<double> NN::propagate(const std::vector<double>& input) {
   return output;
 }
 
-double NN::propagateRecurse(std::map<node, double>& memo, const node& nodeOn) {
+double NN::propagateRecurse(std::map<const node, double>& memo, const node& nodeOn) {
   std::unordered_set<node> invNeighbors = this->incoming[nodeOn];
   double sum = 0;
-  for (node nodeN : invNeighbors) {
+  for (const node& nodeN : invNeighbors) {
     if (memo.count(nodeN) == 0) {
       memo[nodeN] = propagateRecurse(memo, nodeN);
     }
@@ -75,37 +77,23 @@ double NN::propagateRecurse(std::map<node, double>& memo, const node& nodeOn) {
   return this->activation(sum);
 }
 
-void NN::insertGene(struct Gene& gene) {
+void NN::insertGene(const struct Gene& gene) {
   this->insertGene(gene, this->dis(this->gen));
 }
 
-void NN::insertGene(struct Gene& gene, double weight) {
-  for (auto i = this->genotype.rbegin(); i != this->genotype.rend(); ++i) {
-    size_t innov = i->innov;
-    if (innov == gene.innov) {
-      this->incoming[i->out].insert(i->in);
-      i->enabled = true;
-      return;
-    }
-    if (innov < gene.innov) {
-      this->incoming[gene.out].insert(gene.in);
-      this->weights[{gene.in, gene.out}] = weight;
-      this->genotype.insert(i.base(), gene);
-      return;
-    }
-  }
+void NN::insertGene(const struct Gene& gene, double weight) {
+  this->genotype.insert(gene);
   this->incoming[gene.out].insert(gene.in);
   this->weights[{gene.in, gene.out}] = this->dis(this->gen);
-  this->genotype.insert(genotype.begin(), gene);
 }
 
-void NN::disableGene(size_t innov) {
+void NN::disableGene(const size_t innov) {
   struct Gene gene = this->getGene(innov);
   this->incoming[gene.out].erase(gene.in);
   gene.enabled = false;
 }
 
-void NN::toggleGene(size_t innov) {
+void NN::toggleGene(const size_t innov) {
   struct Gene gene = this->getGene(innov);
   if (gene.enabled) {
     this->incoming[gene.out].erase(gene.in);
@@ -116,7 +104,7 @@ void NN::toggleGene(size_t innov) {
   }
 }
 
-void NN::addConn(size_t innov, node from, node to) {
+void NN::addConn(const size_t innov, const node from, const node to) {
   struct Gene gene;
   gene.innov = innov;
   gene.in = from;
@@ -124,7 +112,10 @@ void NN::addConn(size_t innov, node from, node to) {
   this->insertGene(gene);
 }
 
-void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov, node newNode) {
+void NN::addNode(const size_t innov1, 
+                 const size_t innov2, 
+                 const size_t oldInnov, 
+                 const node newNode) {
   struct Gene oldGene = this->getGene(oldInnov);
   node from = oldGene.in;
   node to = oldGene.out;
@@ -141,12 +132,12 @@ void NN::addNode(size_t innov1, size_t innov2, size_t oldInnov, node newNode) {
   this->disableGene(oldInnov);
 }
 
-void NN::randomizeWeight(size_t innov) {
+void NN::randomizeWeight(const size_t innov) {
   struct Gene gene = this->getGene(innov);
   this->weights[{gene.in, gene.out}] = this->dis(this->gen);
 }
 
-struct Gene& NN::getGene(size_t innov) {
+const struct Gene& NN::getGene(const size_t innov) {
   for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
     if (i->innov == innov) {
       return *i;
@@ -155,7 +146,7 @@ struct Gene& NN::getGene(size_t innov) {
   throw std::runtime_error("Gene with innovation number not found");
 }
 
-double NN::getWeight(size_t innov) {
-  struct Gene gene = this->getGene(innov);
+double NN::getWeight(const size_t innov) {
+  const struct Gene gene = this->getGene(innov);
   return this->weights[{gene.in, gene.out}];
 }
