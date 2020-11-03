@@ -19,10 +19,7 @@ NN::NN(const std::function<double(double)> activation,
   for (int o = 0; o < outputs; ++o) {
     this->outputLayer.nodes.push_back(o + inputs);
     for (int i = 0; i < inputs; ++i) {
-      struct Gene gene;
-      gene.innov = i + o * inputs;
-      gene.in = i;
-      gene.out = o + inputs;
+      struct Gene gene(i + o * inputs, i, o + inputs);
       this->genotype.insert(gene);
       this->inputLayer.nodes.push_back(i);
       this->incoming[o + inputs].insert(i);
@@ -105,10 +102,7 @@ void NN::toggleGene(const size_t innov) {
 }
 
 void NN::addConn(const size_t innov, const node from, const node to) {
-  struct Gene gene;
-  gene.innov = innov;
-  gene.in = from;
-  gene.out = to;
+  struct Gene gene(innov, from, to);
   this->insertGene(gene);
 }
 
@@ -119,14 +113,8 @@ void NN::addNode(const size_t innov1,
   struct Gene oldGene = this->getGene(oldInnov);
   node from = oldGene.in;
   node to = oldGene.out;
-  struct Gene gene1;
-  gene1.innov = innov1;
-  gene1.in = from;
-  gene1.out = newNode;
-  struct Gene gene2;
-  gene2.innov = innov2;
-  gene2.in = newNode;
-  gene2.out = to;
+  struct Gene gene1(innov1, from, newNode);
+  struct Gene gene2(innov2, newNode, to);
   this->insertGene(gene1, this->activationLevel);
   this->insertGene(gene2, this->getWeight(oldInnov));
   this->disableGene(oldInnov);
@@ -138,11 +126,10 @@ void NN::randomizeWeight(const size_t innov) {
 }
 
 const struct Gene& NN::getGene(const size_t innov) {
-  for (auto i = this->genotype.begin(); i != this->genotype.end(); ++i) {
-    if (i->innov == innov) {
-      return *i;
-    }
-  } 
+  auto i = this->genotype.find(innov);
+  if (i != this->genotype.end()) {
+    return *i;
+  }
   throw std::runtime_error("Gene with innovation number not found");
 }
 

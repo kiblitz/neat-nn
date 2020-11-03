@@ -16,12 +16,15 @@ struct Gene {
   node in;
   node out;
   bool enabled = true;
-};
 
-// Neural network gene comparison
-struct GeneCmp {
-  bool operator()(const Gene& gene1, const Gene& gene2) const {
-    return gene1.innov < gene2.innov;
+  Gene(const size_t& innov) : innov(innov) {}
+  Gene(const size_t& innov, const node& in, const node& out) : 
+         innov(innov), 
+         in(in), 
+         out(out) {}
+
+  bool operator<(const Gene& gene) const {
+    return innov < gene.innov;
   }
 };
 
@@ -54,7 +57,7 @@ enum MUTATION {
 class NN {
   public:
     // Vector of genes corresponding to neural network genotype
-    std::set<struct Gene, struct GeneCmp> genotype; 
+    std::set<struct Gene> genotype; 
 
     // Map with connection keys to weight values
     std::map<std::pair<node, node>, double> weights;
