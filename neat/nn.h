@@ -91,8 +91,8 @@ class NN {
     // Value for biases and node insertions
     double activationLevel = 1;
 
-    // Gene pool with all genes
-    std::set<struct Gene>& genePool;
+    // Set of existing weights in environment gene pool
+    std::set<std::pair<node, node>>& weightPool;
 
     // Next innovation number
     size_t& innovOn;
@@ -200,7 +200,7 @@ class NN {
      * @param outputs Number of output nodes
      * @param dis Distribution for possible weights
      * @param gen Random number generator for weights
-     * @param genePool Set of all genes
+     * @param weightPool Set of all weights
      * @param innovOn Next innovation number to append to gene pool
      * @param config Mutation probabilities configuration
      * @param activationLevel Set the activation level value (default = 1)
@@ -210,7 +210,7 @@ class NN {
        const size_t outputs, 
        const std::uniform_real_distribution<double>& dis, 
        const std::mt19937& gen,
-       std::set<struct Gene>& genePool,
+       std::set<std::pair<node, node>>& weightPool,
        size_t& innovOn,
        const struct MutationConfig& config = MutationConfig(),
        const double activationLevel = 1);
