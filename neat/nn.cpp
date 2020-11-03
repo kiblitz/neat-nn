@@ -133,6 +133,10 @@ const struct Gene& NN::getGene(const size_t innov) {
   throw std::runtime_error("Gene with innovation number not found");
 }
 
+bool NN::hasGene(const size_t innov) {
+  return this->genotype.find(innov) != this->genotype.end();
+}
+
 double NN::getWeight(const size_t innov) {
   const struct Gene gene = this->getGene(innov);
   return this->weights[{gene.in, gene.out}];

@@ -56,7 +56,7 @@ enum MUTATION {
 
 class NN {
   public:
-    // Vector of genes corresponding to neural network genotype
+    // Set of genes corresponding to neural network genotype
     std::set<struct Gene> genotype; 
 
     // Map with connection keys to weight values
@@ -169,6 +169,14 @@ class NN {
      * @return The gene corresponding to the given innovation number
      */
     const struct Gene& getGene(const size_t innov);
+
+    /**
+     * Checks if gene corresponding to the given innovation number exists
+     *
+     * @param innov Innovation number of gene
+     * @return Whether or not the gene ixists
+     */
+    bool hasGene(const size_t innov);
 
     /**
      * Get the weight of a connection from its gene innovation number
