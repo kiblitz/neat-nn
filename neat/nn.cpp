@@ -6,7 +6,8 @@ NN::NN(const std::function<double(double)> activation,
        const size_t outputs, 
        const std::uniform_real_distribution<double>& dis, 
        const std::mt19937& gen,
-       std::set<std::pair<node, node>>& connPool,
+       std::map<std::pair<node, node>, innovNum>& connPool,
+       std::map<innovNum, std::pair<node, node>>& genePool,
        size_t& innovOn,
        const struct MutationConfig& config,
        const double activationLevel) :
@@ -15,15 +16,16 @@ NN::NN(const std::function<double(double)> activation,
          gen(gen),
          activationLevel(activationLevel),
          connPool(connPool),
+         genePool(genePool),
          innovOn(innovOn) {
   this->inputLayer.size = inputs;
   this->outputLayer.size = outputs;
   for (size_t o = 0; o < outputs; ++o) {
     this->outputLayer.nodes.push_back(o + inputs);
     for (size_t i = 0; i < inputs; ++i) {
-      struct Gene gene(i + o * inputs, i, o + inputs);
       this->inputLayer.nodes.push_back(i);
-      this->insertGene(gene);
+      const connection conn = {i, o + inputs};
+      this->insertGene(i + o * inputs, conn, this->dis(this->gen));
     }
   }
   this->configMutations(config);
@@ -48,7 +50,7 @@ std::vector<double> NN::propagate(const std::vector<double>& input) {
 
   std::map<const size_t, double> memo;
   for (size_t i = 0; i < this->inputLayer.size; ++i) {
-    node nodeOn = this->inputLayer.nodes[i];
+    const node nodeOn = this->inputLayer.nodes[i];
     memo[nodeOn] = input[i];
   }
  
@@ -74,79 +76,73 @@ double NN::propagateRecurse(std::map<const node, double>& memo, const node& node
   return this->activation(sum);
 }
 
-void NN::insertGene(const struct Gene& gene, bool enabled) {
-  this->insertGene(gene, this->dis(this->gen));
+void NN::insertGene(const innovNum innov, 
+                    const connection conn, 
+                    bool enabled) {
+  this->insertGene(innov, conn, this->dis(this->gen), enabled);
 }
 
-void NN::insertGene(const struct Gene& gene, double weight, bool enabled) {
-  if (gene.innov > this->innovOn) {
+void NN::insertGene(const innovNum innov,
+                    const connection conn,
+                    double weight, 
+                    bool enabled) {
+  if (innov > this->innovOn) {
     throw std::runtime_error("Inserting gene with innovation number out of bounds");
   }
-  if (gene.innov == this->innovOn) {
+  if (innov == this->innovOn) {
     this->innovOn++;
-    this->connPool.insert({gene.in, gene.out});
+    this->connPool[conn] = innov;
+    this->genePool[innov] = conn;
+  } else if (this->genePool[innov] != conn) {
+    throw std::runtime_error("Inserting gene with wrong corresponding " 
+                             "innovation number and connection");
   }
   if (enabled) {
-    this->incoming[gene.out].insert(gene.in);
+    this->incoming[conn.second].insert(conn.first);
   }
-  this->enabledGenes[gene.innov] = enabled;
-  this->genotype.insert(gene);
-  this->weights[{gene.in, gene.out}] = weight;
+  this->enabledGenes[innov] = enabled;
+  this->genotype.insert(innov);
+  this->weights[conn] = weight;
 }
 
 void NN::disableGene(const size_t innov) {
-  struct Gene gene = this->getGene(innov);
-  this->incoming[gene.out].erase(gene.in);
+  const connection conn = this->genePool[innov];
+  this->incoming[conn.second].erase(conn.first);
   this->enabledGenes[innov] = false;
 }
 
 void NN::toggleGene(const size_t innov) {
-  struct Gene gene = this->getGene(innov);
+  const connection conn = this->genePool[innov];
   if (enabledGenes[innov]) {
-    this->incoming[gene.out].erase(gene.in);
+    this->incoming[conn.second].erase(conn.first);
   } else {
-    this->incoming[gene.out].insert(gene.in);
+    this->incoming[conn.second].insert(conn.first);
   }
   this->enabledGenes[innov] = !this->enabledGenes[innov];
 }
 
-void NN::addConn(const size_t innov, const node from, const node to) {
-  struct Gene gene(innov, from, to);
-  this->insertGene(gene);
+void NN::addConn(const size_t innov, const connection conn) {
+  this->insertGene(innov, conn);
 }
 
 void NN::addNode(const size_t innov1, 
                  const size_t innov2, 
                  const size_t oldInnov, 
                  const node newNode) {
-  struct Gene oldGene = this->getGene(oldInnov);
-  node from = oldGene.in;
-  node to = oldGene.out;
-  struct Gene gene1(innov1, from, newNode);
-  struct Gene gene2(innov2, newNode, to);
-  this->insertGene(gene1, this->activationLevel);
-  this->insertGene(gene2, this->getWeight(oldInnov));
+  const connection oldConn = this->genePool[oldInnov];
+  const connection conn1 = {oldConn.first, newNode};
+  const connection conn2 = {newNode, oldConn.second};
+  this->insertGene(innov1, conn1, this->activationLevel);
+  this->insertGene(innov2, conn2, this->getWeight(oldInnov));
   this->disableGene(oldInnov);
 }
 
 void NN::randomizeWeight(const size_t innov) {
-  struct Gene gene = this->getGene(innov);
-  this->weights[{gene.in, gene.out}] = this->dis(this->gen);
-}
-
-const struct Gene& NN::getGene(const size_t innov) {
-  auto i = this->genotype.find(innov);
-  if (i != this->genotype.end()) {
-    return *i;
-  }
-  throw std::runtime_error("Gene with innovation number not found");
-}
-
-bool NN::hasGene(const size_t innov) {
-  return this->genotype.find(innov) != this->genotype.end();
+  const connection conn = this->genePool[innov];
+  this->weights[conn] = this->dis(this->gen);
 }
 
 double NN::getWeight(const size_t innov) {
-  const struct Gene gene = this->getGene(innov);
-  return this->weights[{gene.in, gene.out}];
+  const connection conn = this->genePool[innov];
+  return this->weights[conn];
 }

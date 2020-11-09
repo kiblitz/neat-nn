@@ -9,23 +9,8 @@
 #include <vector>
 
 typedef size_t node;
-
-// Neural network gene
-struct Gene {
-  size_t innov;
-  node in;
-  node out;
-
-  Gene(const size_t& innov) : innov(innov) {}
-  Gene(const size_t& innov, const node& in, const node& out) : 
-         innov(innov), 
-         in(in), 
-         out(out) {}
-
-  bool operator<(const struct Gene& gene) const {
-    return innov < gene.innov;
-  }
-};
+typedef size_t innovNum;
+typedef std::pair<node, node> connection;
 
 // Neural network layer
 struct Layer {
@@ -55,14 +40,14 @@ enum MUTATION {
 
 class NN {
   public:
-    // Set of genes corresponding to neural network genotype
-    std::set<struct Gene> genotype; 
+    // Set of innovation numbers corresponding to neural network genotype
+    std::set<innovNum> genotype; 
 
     // Map with innovation numbers to gene enabled
-    std::map<size_t, bool> enabledGenes;
+    std::map<innovNum, bool> enabledGenes;
 
     // Map with connection keys to weight values
-    std::map<std::pair<node, node>, double> weights;
+    std::map<connection, double> weights;
 
     // Input layer
     Layer inputLayer;
@@ -91,11 +76,14 @@ class NN {
     // Value for biases and node insertions
     double activationLevel = 1;
 
-    // Set of existing connections in environment gene pool
-    std::set<std::pair<node, node>>& connPool;
+    // Map of existing connections to innovation numbers in environment gene pool
+    std::map<connection, innovNum>& connPool;
+
+    // Map of innovation numbers to existing connections in environment gene pool
+    std::map<innovNum, connection>& genePool;
 
     // Next innovation number
-    size_t& innovOn;
+    innovNum& innovOn;
 
     /** 
      * Recursive propagation helper
@@ -113,40 +101,45 @@ class NN {
     void configMutations(const struct MutationConfig& config);
  
     /** 
-     * Inserts gene to genotype
+     * Inserts gene innovation number to genotype
      *
      * Adds random weight and updates incoming map. If gene in genotype, 
      * just enable it 
      *
-     * @param gene Gene to insert
+     * @param innov Innovation number of gene to insert
+     * @param conn Connection of gene to insert 
      * @param weight Weight of connection indicated by gene
      * @param enabled Gene inserted enabled characteristic
      */
-    void insertGene(const struct Gene& gene, bool enabled = true);
-    void insertGene(const struct Gene& gene, double weight, bool enabled = true);
+    void insertGene(const innovNum innov, 
+                    const connection conn,
+                    const bool enabled = true);
+    void insertGene(const innovNum innov, 
+                    const connection conn,
+                    const double weight, 
+                    const bool enabled = true);
  
     /** 
      * Disables a connection
      *
      * @param innov Innovation of gene with connection to disable
      */
-    void disableGene(const size_t innov);
+    void disableGene(const innovNum innov);
 
     /**
      * Toggles a connection
      *
      * @param innov Innovation of gene with connection to toggle
      */
-    void toggleGene(const size_t innov);
+    void toggleGene(const innovNum innov);
 
     /** 
-     * Adds a new connection between given nodes
+     * Adds a new connection between nodes in a given connection
      *
      * @param innov Innovation number of gene corresponding to new connection
-     * @param from Connection start node
-     * @param to Connection end node
+     * @param conn Connection of gene to add node between
      */
-    void addConn(const size_t innov, const node from, const node to);
+    void addConn(const innovNum innov, const connection conn);
 
     /** 
      * Adds a new node between given nodes
@@ -156,9 +149,9 @@ class NN {
      * @param oldInnov Innovation number of gene for old connection
      * @param newNode New node to add
      */   
-    void addNode(const size_t innov1, 
-                 const size_t innov2, 
-                 const size_t oldInnov, 
+    void addNode(const innovNum innov1, 
+                 const innovNum innov2, 
+                 const innovNum oldInnov, 
                  const node newNode);
 
     /**
@@ -166,23 +159,7 @@ class NN {
      *
      * @param innov Innovation number of gene for connection to randomize weight
      */
-    void randomizeWeight(const size_t innov);
-
-    /**
-     * Get the gene corresponding to the given innovation number
-     *
-     * @param innov Innovation number of gene
-     * @return The gene corresponding to the given innovation number
-     */
-    const struct Gene& getGene(const size_t innov);
-
-    /**
-     * Checks if gene corresponding to the given innovation number exists
-     *
-     * @param innov Innovation number of gene
-     * @return Whether or not the gene ixists
-     */
-    bool hasGene(const size_t innov);
+    void randomizeWeight(const innovNum innov);
 
     /**
      * Get the weight of a connection from its gene innovation number
@@ -190,7 +167,7 @@ class NN {
      * @param innov Innovation number of gene for connection
      * @return The weight of the connection associated with the given gene
      */
-    double getWeight(const size_t innov);
+    double getWeight(const innovNum innov);
 
   public:
     /**
@@ -201,7 +178,8 @@ class NN {
      * @param outputs Number of output nodes
      * @param dis Distribution for possible weights
      * @param gen Random number generator for weights
-     * @param connPool Set of all connections
+     * @param connPool Map of all connections to innovation numbers
+     * @param genePool Map of all innovation numbers to connections
      * @param innovOn Next innovation number to append to gene pool
      * @param config Mutation probabilities configuration
      * @param activationLevel Set the activation level value (default = 1)
@@ -211,8 +189,9 @@ class NN {
        const size_t outputs, 
        const std::uniform_real_distribution<double>& dis, 
        const std::mt19937& gen,
-       std::set<std::pair<node, node>>& connPool,
-       size_t& innovOn,
+       std::map<connection, innovNum>& connPool,
+       std::map<innovNum, connection>& genePool,
+       innovNum& innovOn,
        const struct MutationConfig& config = MutationConfig(),
        const double activationLevel = 1);
 
